@@ -54,7 +54,7 @@ mv /home/pi/RaspberryIPCamera* /home/pi/RaspberryIPCamera
 # Set-up nginx with php support and enable our Raspberry IP Camera website.
 ########################################################################################
 # Install nginx with php support.
-sudo apt-get -y install nginx php-fpm
+sudo apt-get -y install nginx php5-fpm
 # Disable the default nginx website.
 sudo rm /etc/nginx/sites-enabled/default
 # Copy our siteconf into place
@@ -62,22 +62,28 @@ sudo cp /home/pi/RaspberryIPCamera/DefaultConfigFiles/RaspberryIPCamera.Nginx.Si
 # Lets enable our website
 sudo ln -s /etc/nginx/sites-available/RaspberryIPCamera.Nginx.Siteconf /etc/nginx/sites-enabled/RaspberryIPCamera.Nginx.Siteconf
 # Disable output buffering in php.
-sudo sed -i 's/output_buffering = 4096/;output_buffering = 4096/g' /etc/php5/fpm/php.ini
+sudo sed -i 's/output_buffering = 4096/;output_buffering = 4096/g' /etc/php/7.0/fpm/php.ini
+# Modify service unit of nginx service to create log folder before starting, otherwise error
+sudo sed -i '20i\ExecStartPre=/bin/mkdir /var/log/nginx' /lib/systemd/system/nginx.service
+# Modify service unit of php5-fpm service to create a tmp folder to store sessions in, otherwise error
+sudo sed -i '8i\ExecStartPre=/bin/mkdir /tmp/phpsessions' /lib/systemd/system/php7.0-fpm.service
+sudo sed -i '9i\ExecStartPre=/bin/chgrp www-data /tmp/phpsessions' /lib/systemd/system/php7.0-fpm.service
+sudo sed -i '10i\ExecStartPre=/bin/chmod 775 /tmp/phpsessions' /lib/systemd/system/php7.0-fpm.service
 # Set permissions for the config files
 sudo chgrp www-data /home/pi/RaspberryIPCamera/www/RaspberryIPCameraSettings.ini
-chmod 664 /home/pi/RaspberryI
-PCamera/www/RaspberryIPCameraSettings.inisudo chgrp www-data /home/pi/RaspberryIPCamera/secret/RaspberryIPCamera.secret
+chmod 664 /home/pi/RaspberryIPCamera/www/RaspberryIPCameraSettings.ini
+sudo chgrp www-data /home/pi/RaspberryIPCamera/secret/RaspberryIPCamera.secret
 chmod 664 /home/pi/RaspberryIPCamera/secret/RaspberryIPCamera.secret
 
 ########################################################################################
 # Install all UV4L components
 ########################################################################################
 # Add the supplier's repository key to our key database
-curl http://www.linux-projects.org/listing/uv4l_repo/lrkey.asc | sudo apt-key add -
-echo "deb http://www.linux-projects.org/listing/uv4l_repo/raspbian/ jessie main" | sudo tee -a /etc/apt/sources.list
+curl http://www.linux-projects.org/listing/uv4l_repo/lpkey.asc | sudo apt-key add -
+echo "deb http://www.linux-projects.org/listing/uv4l_repo/raspbian/stretch stretch main" | sudo tee -a /etc/apt/sources.list
 sudo apt-get update
 # Now fetch and install the required modules.
-sudo apt-get -y install uv4l uv4l-raspicam
+sudo apt-get install uv4l uv4l-raspicam
 sudo apt-get -y install uv4l-raspicam-extras
 sudo apt-get -y install uv4l-server
 # Let's copy our own config files in place.
@@ -115,7 +121,6 @@ sudo systemctl daemon-reload
 # Set the startup for the service to disabled for our default config.
 sudo systemctl disable RTSP-Server.service
 
-
 ########################################################################################
 # Set some additional rights and config files
 ########################################################################################
@@ -126,6 +131,18 @@ sudo chgrp www-data /etc/timezone
 sudo chmod 664 /etc/timezone
 sudo chgrp www-data /etc/ntp.conf
 sudo chmod 664 /etc/ntp.conf
+
+########################################################################################
+# Clean unneeded packages from our design to make the image size smaller for redistribution
+########################################################################################
+# Let's clean as much rubbish from our image so we can repack this for internet distribution in a normal size.
+sudo mount -o remount rw /
+sudo apt-get -y install localepurge
+sudo localepurge
+sudo apt-get -y remove --purge localepurge
+sudo apt-get -y remove --purge avahi-daemon build-essential nfs-common console-setup curl dosfstools lua5.1 luajit manpages-dev parted python-rpi.gpio python
+sudo apt-get -y autoremove --purge
+sudo apt-get clean
 
 ########################################################################################
 # Make our SD card read only, to preserve it and contribute to system stability
@@ -157,29 +174,11 @@ proc            /proc           proc    defaults              0 0
 tmpfs           /var/log        tmpfs   nodev,nosuid          0 0
 tmpfs           /var/tmp        tmpfs   nodev,nosuid          0 0
 tmpfs           /tmp            tmpfs   nodev,nosuid          0 0
-# Modify service unit of nginx service to create log folder before starting, otherwise error
-sudo sed -i '20i\ExecStartPre=/bin/mkdir /var/log/nginx' /lib/systemd/system/nginx.service
-# Modify service unit of php5-fpm service to create a tmp folder to store sessions in, otherwise error
-sudo sed -i '8i\ExecStartPre=/bin/mkdir /tmp/phpsessions' /lib/systemd/system/php5-fpm.service
-sudo sed -i '9i\ExecStartPre=/bin/chgrp www-data /tmp/phpsessions' /lib/systemd/system/php5-fpm.service
-sudo sed -i '10i\ExecStartPre=/bin/chmod 775 /tmp/phpsessions' /lib/systemd/system/php5-fpm.service
 # reboot your raspberry pi here, check if you are read only
 sudo reboot
 # log in again and check the mounts
 mount | grep /dev/mmcblk0p2
 # your / filesystem should be ro
-
-########################################################################################
-# Clean unneeded packages from our design to make the image size smaller for redistribution
-########################################################################################
-# Let's clean as much rubbish from our image so we can repack this for internet distribution in a normal size.
-sudo mount -o remount rw /
-sudo apt-get -y install localepurge
-sudo localepurge
-sudo apt-get -y remove --purge localepurge
-sudo apt-get -y remove --purge avahi-daemon build-essential nfs-common console-setup curl dosfstools lua5.1 luajit manpages-dev parted python-rpi.gpio python
-sudo apt-get -y autoremove --purge
-sudo apt-get clean
 sudo rm -rf /var/swap
 
 ########################################################################################
