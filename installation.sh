@@ -54,7 +54,7 @@ mv /home/pi/RaspberryIPCamera* /home/pi/RaspberryIPCamera
 # Set-up nginx with php support and enable our Raspberry IP Camera website.
 ########################################################################################
 # Install nginx with php support.
-sudo apt-get -y install nginx php5-fpm
+sudo apt-get -y install nginx php-fpm
 # Disable the default nginx website.
 sudo rm /etc/nginx/sites-enabled/default
 # Copy our siteconf into place
@@ -65,8 +65,8 @@ sudo ln -s /etc/nginx/sites-available/RaspberryIPCamera.Nginx.Siteconf /etc/ngin
 sudo sed -i 's/output_buffering = 4096/;output_buffering = 4096/g' /etc/php5/fpm/php.ini
 # Set permissions for the config files
 sudo chgrp www-data /home/pi/RaspberryIPCamera/www/RaspberryIPCameraSettings.ini
-chmod 664 /home/pi/RaspberryIPCamera/www/RaspberryIPCameraSettings.ini
-sudo chgrp www-data /home/pi/RaspberryIPCamera/secret/RaspberryIPCamera.secret
+chmod 664 /home/pi/RaspberryI
+PCamera/www/RaspberryIPCameraSettings.inisudo chgrp www-data /home/pi/RaspberryIPCamera/secret/RaspberryIPCamera.secret
 chmod 664 /home/pi/RaspberryIPCamera/secret/RaspberryIPCamera.secret
 
 ########################################################################################
